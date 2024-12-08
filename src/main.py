@@ -164,11 +164,14 @@ def callback_query(call):
     message_id = call.message.message_id
 
     if call.data == 'tip_of_the_day':
-        # Handle the Tip of the Day option
-        quote = get_random_quote()
+        bot.answer_callback_query(call.id)
+        delete_previous_menu(user_id, chat_id)
+        bot.send_message(chat_id, get_random_quote())
         markup = main_menu()
-        bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text=f"Совет дня:\n\n{quote}\n\nВыберите опцию из меню:", reply_markup=markup)
+        sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
+        # Сохраняем идентификатор отправленного сообщения с меню
+        user_menu_messages[user_id] = sent_message.message_id
+        user_states[user_id] = STATE_DEFAULT
 
     elif call.data == 'simple_module':
         # Устанавливаем состояние пользователя
