@@ -4,14 +4,19 @@ import configparser
 import datetime
 import requests
 from hugging_face_model import generate_response
+import json
+from tabulate import tabulate
+
+#import modules
+from feedback import (
+    handle_user_feedback,
+    feedback_module_menu,
+)
 from simple import (
     handle_simple_q,
     simple_module_menu,
     simple_module_after_response_menu,
 )
-import json
-from tabulate import tabulate
-
 
 CONFIG = configparser.ConfigParser()
 CONFIG.read('../configs/config.ini')
@@ -86,14 +91,6 @@ def main_menu():
     markup.add(button_admin)
     markup.add(button_feedback)
     markup.add(button_tip)
-    return markup
-
-
-# Функция для создания меню простого модуля
-def feedback_module_menu():
-    markup = types.InlineKeyboardMarkup()
-    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
-    markup.add(back_button)
     return markup
 
 
@@ -196,22 +193,6 @@ def increase_stat(module):
     with open('../admin/stat.json', 'r+') as file:
         data = json.load(file)
         data[module] += 1
-        file.seek(0)
-        json.dump(data, file)
-        file.truncate()
-        file.close()
-
-
-def handle_user_feedback(user_id, user_message):
-    with open('../admin/feedback.json', 'r+') as file:
-        data = json.load(file)
-
-        user_id = str(user_id)
-
-        if user_id not in data:
-            data[user_id] = [user_message]
-        else:
-            data[user_id].append(user_message)
         file.seek(0)
         json.dump(data, file)
         file.truncate()
