@@ -1,11 +1,10 @@
 import telebot
 from telebot import types
 import configparser
-import random
 import datetime
 import requests
 from hugging_face_model import generate_response
-from simple import is_yes_no_question
+from simple import handle_simple_q
 import json
 from tabulate import tabulate
 
@@ -461,14 +460,8 @@ def handle_message(message):
 
             markup = simple_module_after_response_menu()
 
-            if not is_yes_no_question(msg_text, mistral_token):
-                bot.send_message(chat_id, "Некорректный вопрос")
-            else:
-                prob = random.randint(0, 1)
-                if prob == 1:
-                    sent_message = bot.send_message(chat_id, f'Вопрос: {msg_text}\nОтвет: Да')
-                else:
-                    sent_message = bot.send_message(chat_id, f'Вопрос: {msg_text}\nОтвет: No')
+            msg = handle_simple_q(msg_text, mistral_token)
+            bot.send_message(chat_id, msg)
 
             sent_message = bot.send_message(chat_id, "Задавай ещё раз.", reply_markup=markup)
             # Сохраняем идентификатор отправленного сообщения с меню
