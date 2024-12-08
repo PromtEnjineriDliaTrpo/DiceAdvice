@@ -8,6 +8,11 @@ import json
 from tabulate import tabulate
 
 #import modules
+from admin import (
+    admin_module_menu,
+    get_feedback,
+    is_admin,
+)
 from feedback import (
     handle_user_feedback,
     feedback_module_menu,
@@ -34,12 +39,6 @@ CONFIG.read('../configs/config.ini')
 hugging_face_token = CONFIG['HUGGING_FACE_API']['hugging_face_token']
 token = CONFIG['BOT.TELEGRAM']['token']
 mistral_token = CONFIG['BOT.MISTRAL']['token']
-
-
-admin_ids = [
-    406136592,
-    1230349081
-]
 
 bot = telebot.TeleBot(token)
 
@@ -75,7 +74,7 @@ def start_command(message):
 
 
 # Функция для создания главного меню
-def main_menu():
+def main_menu(user_id=0):
     markup = types.InlineKeyboardMarkup()
     button_simple = types.InlineKeyboardButton("1 - Простой модуль", callback_data='simple_module')
     button_complex = types.InlineKeyboardButton("2 - Сложный модуль", callback_data='complex_module')
@@ -84,20 +83,10 @@ def main_menu():
     button_tip = types.InlineKeyboardButton("5 - Совет дня", callback_data='tip_of_the_day')
     markup.add(button_simple)
     markup.add(button_complex)
-    markup.add(button_admin)
+    if is_admin(user_id):
+        markup.add(button_admin)
     markup.add(button_feedback)
     markup.add(button_tip)
-    return markup
-
-
-def admin_module_menu():
-    markup = types.InlineKeyboardMarkup()
-    stat_btn = types.InlineKeyboardButton("Показать статистику", callback_data='show_statistic')
-    reviews_btn = types.InlineKeyboardButton("Показать отзывы", callback_data='show_reviews')
-    back_btn = types.InlineKeyboardButton("Назад", callback_data='back_to_main')
-    markup.add(stat_btn)
-    markup.add(reviews_btn)
-    markup.add(back_btn)
     return markup
 
 
@@ -152,23 +141,6 @@ def handle_complex_question(chat_id, user_message, mode=None, include_datetime=F
         bot.send_message(chat_id, f"Произошла ошибка при обработке AI: {e}")
 
 
-def get_feedback():
-    with open('../admin/feedback.json', 'r') as f:
-        data = json.load(f)
-
-    table_data = []
-    for user_id, reviews in list(data.items())[:5]:  # берем первых 5 пользователей
-        for review in reviews[:5]:  # берем первые 5 отзывов
-            table_data.append({
-                'user_id': user_id,
-                'review': review
-            })
-
-    # Выводим таблицу
-    return tabulate(table_data, headers="keys", tablefmt="grid")
-
-
-
 # Обработчик нажатий на кнопки
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
@@ -180,7 +152,7 @@ def callback_query(call):
         bot.answer_callback_query(call.id)
         delete_previous_menu(user_id, chat_id)
         bot.send_message(chat_id, get_random_quote())
-        markup = main_menu()
+        markup = main_menu(user_id)
         increase_stat(TIP_OF_THE_DAY_STATS)
         sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
         # Сохраняем идентификатор отправленного сообщения с меню
@@ -272,7 +244,7 @@ def callback_query(call):
     elif call.data == 'back_to_main':
         # Сбрасываем состояние пользователя
         user_states[user_id] = STATE_DEFAULT
-        markup = main_menu()
+        markup = main_menu(user_id)
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
@@ -291,25 +263,15 @@ def callback_query(call):
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
     elif call.data == 'admin_module':
-        if user_id in admin_ids:
-            # Устанавливаем состояние пользователя
-            user_states[user_id] = STATE_AWAITING_SIMPLE_QUESTION
-            markup = admin_module_menu()
+        # Устанавливаем состояние пользователя
+        user_states[user_id] = STATE_AWAITING_SIMPLE_QUESTION
+        markup = admin_module_menu()
 
-            # Редактируем предыдущее сообщение с новым текстом и клавиатурой
-            bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                                text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
-            # Обновляем идентификатор последнего сообщения с меню
-            user_menu_messages[user_id] = message_id
-        else:
-            bot.answer_callback_query(call.id)
-            delete_previous_menu(user_id, chat_id)
-            bot.send_message(chat_id, 'еблан ты, а не админ')
-            markup = main_menu()
-            sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
-            # Сохраняем идентификатор отправленного сообщения с меню
-            user_menu_messages[user_id] = sent_message.message_id
-            user_states[user_id] = STATE_DEFAULT
+        # Редактируем предыдущее сообщение с новым текстом и клавиатурой
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                            text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+        # Обновляем идентификатор последнего сообщения с меню
+        user_menu_messages[user_id] = message_id
     elif call.data == 'show_statistic':
         bot.answer_callback_query(call.id)
         delete_previous_menu(user_id, chat_id)
@@ -355,7 +317,7 @@ def callback_query(call):
         bot.answer_callback_query(call.id)
         delete_previous_menu(user_id, chat_id)
         bot.send_message(chat_id, "Данный модуль еще в разработке.")
-        markup = main_menu()
+        markup = main_menu(user_id)
         sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
         # Сохраняем идентификатор отправленного сообщения с меню
         user_menu_messages[user_id] = sent_message.message_id
