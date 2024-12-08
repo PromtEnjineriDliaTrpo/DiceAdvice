@@ -6,7 +6,7 @@ from telebot import types
 # Функция для создания меню простого модуля
 def feedback_module_menu():
     markup = types.InlineKeyboardMarkup()
-    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
+    back_button = types.InlineKeyboardButton("Go back", callback_data='back_to_main')
     markup.add(back_button)
     return markup
 

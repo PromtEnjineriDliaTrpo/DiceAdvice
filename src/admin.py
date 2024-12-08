@@ -34,9 +34,9 @@ def is_admin(user_id):
 
 def admin_module_menu():
     markup = types.InlineKeyboardMarkup()
-    stat_btn = types.InlineKeyboardButton("Показать статистику", callback_data='show_statistic')
-    reviews_btn = types.InlineKeyboardButton("Показать отзывы", callback_data='show_reviews')
-    back_btn = types.InlineKeyboardButton("Назад", callback_data='back_to_main')
+    stat_btn = types.InlineKeyboardButton("show statistics", callback_data='show_statistic')
+    reviews_btn = types.InlineKeyboardButton("Show feedback", callback_data='show_reviews')
+    back_btn = types.InlineKeyboardButton("Go back", callback_data='back_to_main')
     markup.add(stat_btn)
     markup.add(reviews_btn)
     markup.add(back_btn)

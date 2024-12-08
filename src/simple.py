@@ -30,19 +30,19 @@ def _is_yes_no_question(question, api_key):
 
 def handle_simple_q(question, api_token):
     if not _is_yes_no_question(question, api_token):
-        return "Некорректный вопрос"
+        return "Incorrect question"
     else:
         prob = random.randint(0, 1)
         if prob == 1:
-            return f'Вопрос: {question}\nОтвет: Да'
+            return f'Question: {question}\nОтвет: Yes'
         else:
-            return f'Вопрос: {question}\nОтвет: No'
+            return f'Question: {question}\nОтвет: No'
 
 
 # Функция для создания меню простого модуля
 def simple_module_menu():
     markup = types.InlineKeyboardMarkup()
-    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
+    back_button = types.InlineKeyboardButton("Go back", callback_data='back_to_main')
     markup.add(back_button)
     return markup
 
@@ -50,6 +50,6 @@ def simple_module_menu():
 # Функция для создания меню после ответа
 def simple_module_after_response_menu():
     markup = types.InlineKeyboardMarkup()
-    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
+    back_button = types.InlineKeyboardButton("Go back", callback_data='back_to_main')
     markup.add(back_button)
     return markup

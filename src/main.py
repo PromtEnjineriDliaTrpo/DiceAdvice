@@ -75,11 +75,11 @@ def start_command(message):
 # Функция для создания главного меню
 def main_menu(user_id=0):
     markup = types.InlineKeyboardMarkup()
-    button_simple = types.InlineKeyboardButton("1 - Простой модуль", callback_data='simple_module')
-    button_complex = types.InlineKeyboardButton("2 - Сложный модуль", callback_data='complex_module')
-    button_admin = types.InlineKeyboardButton("3 - Модуль для админов", callback_data='admin_module')
-    button_feedback = types.InlineKeyboardButton("4 - Модуль для обратной связи", callback_data='feedback_module')
-    button_tip = types.InlineKeyboardButton("5 - Совет дня", callback_data='tip_of_the_day')
+    button_simple = types.InlineKeyboardButton("1 - Simple module", callback_data='simple_module')
+    button_complex = types.InlineKeyboardButton("2 - Complex module", callback_data='complex_module')
+    button_admin = types.InlineKeyboardButton("3 - Admin module", callback_data='admin_module')
+    button_feedback = types.InlineKeyboardButton("4 - Feedback module", callback_data='feedback_module')
+    button_tip = types.InlineKeyboardButton("5 - Tip of the day", callback_data='tip_of_the_day')
     markup.add(button_simple)
     markup.add(button_complex)
     if is_admin(user_id):
@@ -102,7 +102,7 @@ def callback_query(call):
         bot.send_message(chat_id, get_random_quote())
         markup = main_menu(user_id)
         increase_stat(TIP_OF_THE_DAY_STATS)
-        sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
+        sent_message = bot.send_message(chat_id, "Welcome! Choose the option:", reply_markup=markup)
         # Сохраняем идентификатор отправленного сообщения с меню
         user_menu_messages[user_id] = sent_message.message_id
         user_states[user_id] = STATE_DEFAULT
@@ -114,7 +114,7 @@ def callback_query(call):
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Привет, ты выбрал простой модуль, напиши вопрос:", reply_markup=markup)
+                              text="Hi, u've chosen simple module, write ur question:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
 
@@ -123,7 +123,7 @@ def callback_query(call):
         user_states[user_id] = STATE_SELECTING_COMPLEX_OPTION
         markup = complex_module_menu()
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Вы выбрали сложный модуль. Выберите параметры или задайте вопрос:",
+                              text="U've chosen cmplex module. Choose parameters or ask the question:",
                               reply_markup=markup)
 
     elif call.data == 'select_mode':
@@ -131,17 +131,17 @@ def callback_query(call):
         user_states[user_id] = STATE_SELECTING_COMPLEX_OPTION
         markup = mode_selection_menu()
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Выберите режим для ответа AI:", reply_markup=markup)
+                              text="choose mode for the AI:", reply_markup=markup)
 
     elif call.data.startswith('set_mode_'):
         # Set the selected mode for the user
         mode = call.data.split('_')[-1]
         user_complex_preferences[user_id] = user_complex_preferences.get(user_id, {})
         user_complex_preferences[user_id]['mode'] = mode
-        bot.answer_callback_query(call.id, f"Режим установлен: {mode.capitalize()}")
+        bot.answer_callback_query(call.id, f"Mode installed: {mode.capitalize()}")
         markup = complex_module_menu()
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text=f"Вы выбрали режим: {mode.capitalize()}. Теперь вы можете задать вопрос.",
+                              text=f"U've choosen: {mode.capitalize()}. Now u can ask the question.",
                               reply_markup=markup)
 
     elif call.data == 'include_datetime':
@@ -149,11 +149,11 @@ def callback_query(call):
         user_complex_preferences[user_id] = user_complex_preferences.get(user_id, {})
         current_pref = user_complex_preferences[user_id].get('include_datetime', False)
         user_complex_preferences[user_id]['include_datetime'] = not current_pref
-        status = "включено" if not current_pref else "отключено"
-        bot.answer_callback_query(call.id, f"Добавление текущего дня и времени {status}.")
+        status = "On" if not current_pref else "Off"
+        bot.answer_callback_query(call.id, f"Add current datetime {status}.")
         markup = complex_module_menu()
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text=f"Добавление текущего дня и времени {status}. Теперь вы можете задать вопрос.",
+                              text=f"Add current datetime {status}. Now u can ask the question.",
                               reply_markup=markup)
 
     elif call.data == 'cancel_mode':
@@ -161,33 +161,33 @@ def callback_query(call):
         user_complex_preferences[user_id] = user_complex_preferences.get(user_id, {})
         if 'mode' in user_complex_preferences[user_id]:
             del user_complex_preferences[user_id]['mode']
-            bot.answer_callback_query(call.id, "Режим сброшен.")
+            bot.answer_callback_query(call.id, "The mode is reset.")
         else:
-            bot.answer_callback_query(call.id, "Режим уже не установлен.")
+            bot.answer_callback_query(call.id, "The mode is no longer set.")
         markup = complex_module_menu()
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Режим сброшен. Выберите параметры или задайте вопрос.", reply_markup=markup)
+                              text="The mode is reset. Select the options or ask a question.", reply_markup=markup)
 
     elif call.data == 'cancel_datetime':
         # Cancel datetime inclusion
         user_complex_preferences[user_id] = user_complex_preferences.get(user_id, {})
         if user_complex_preferences[user_id].get('include_datetime', False):
             user_complex_preferences[user_id]['include_datetime'] = False
-            bot.answer_callback_query(call.id, "Добавление текущего дня и времени отключено.")
+            bot.answer_callback_query(call.id, "Adding the current day and time is disabled.")
         else:
-            bot.answer_callback_query(call.id, "Добавление текущего дня и времени уже отключено.")
+            bot.answer_callback_query(call.id, "Adding the current day and time is already disabled.")
         markup = complex_module_menu()
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Добавление текущего дня и времени отключено. Выберите параметры или задайте вопрос.",
+                              text="Adding the current day and time is disabled. Select the options or ask a question.",
                               reply_markup=markup)
 
     elif call.data == 'ask_complex_question':
         # Prompt the user to send their question
         user_states[user_id] = STATE_AWAITING_COMPLEX_QUESTION
         back_button = types.InlineKeyboardMarkup()
-        back_button.add(types.InlineKeyboardButton("Вернуться назад", callback_data='complex_module'))
+        back_button.add(types.InlineKeyboardButton("Go back", callback_data='complex_module'))
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Введите ваш вопрос для сложного модуля:", reply_markup=back_button)
+                              text="Enter your question for a complex module:", reply_markup=back_button)
 
     elif call.data == 'back_to_main':
         # Сбрасываем состояние пользователя
@@ -196,7 +196,7 @@ def callback_query(call):
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Вы вернулись в главное меню. Выберите опцию:", reply_markup=markup)
+                              text="You are back in the main menu. Select an option:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
 
@@ -207,7 +207,7 @@ def callback_query(call):
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Напишите следующий вопрос:", reply_markup=markup)
+                              text="Write the following question:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
     elif call.data == 'admin_module':
@@ -217,7 +217,7 @@ def callback_query(call):
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                            text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+                            text="Hello, my dear and esteemed admin, select the option:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
     elif call.data == 'show_statistic':
@@ -231,7 +231,7 @@ def callback_query(call):
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.send_message(chat_id=chat_id,
-                            text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+                            text="Hello, my dear and esteemed admin, select the option:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
     elif call.data == 'show_reviews':
@@ -247,7 +247,7 @@ def callback_query(call):
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.send_message(chat_id=chat_id,
-                            text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+                            text="Hello, my dear and esteemed admin, select the option:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
     elif call.data == 'feedback_module':
@@ -257,16 +257,16 @@ def callback_query(call):
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
-                              text="Привет, мой недорогой и немногоуважаемый пользователь, напиши отзыв:", reply_markup=markup)
+                              text="Hello, my inexpensive and slightly respected user, write a review:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
     else:
         # Обработка других модулей (пока не реализованы)
         bot.answer_callback_query(call.id)
         delete_previous_menu(user_id, chat_id)
-        bot.send_message(chat_id, "Данный модуль еще в разработке.")
+        bot.send_message(chat_id, "This module is still in development.")
         markup = main_menu(user_id)
-        sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
+        sent_message = bot.send_message(chat_id, "Welcome! Select an option:", reply_markup=markup)
         # Сохраняем идентификатор отправленного сообщения с меню
         user_menu_messages[user_id] = sent_message.message_id
         user_states[user_id] = STATE_DEFAULT
@@ -294,7 +294,7 @@ def handle_message(message):
             msg = handle_simple_q(msg_text, mistral_token)
             bot.send_message(chat_id, msg)
 
-            sent_message = bot.send_message(chat_id, "Задавай ещё раз.", reply_markup=markup)
+            sent_message = bot.send_message(chat_id, "Ask me again.", reply_markup=markup)
             # Сохраняем идентификатор отправленного сообщения с меню
             user_menu_messages[user_id] = sent_message.message_id
             # Остаемся в текущем состоянии или сбрасываем, если нужно
@@ -309,7 +309,7 @@ def handle_message(message):
             msg_ = handle_complex_question(chat_id, hugging_face_token, user_message, mode, include_datetime)
             bot.send_message(chat_id, msg_)
             user_states[user_id] = STATE_SELECTING_COMPLEX_OPTION
-            bot.send_message(chat_id, "Вы можете задать следующий вопрос или вернуться в меню.",
+            bot.send_message(chat_id, "You can ask the following question or return to the menu.",
                              reply_markup=complex_module_menu())
             increase_stat(COMPLEX_MODULE_STATS)
         elif state == STATE_AWAITING_FEEDBACk:
@@ -319,15 +319,15 @@ def handle_message(message):
             handle_user_feedback(user_id, user_message)
 
             user_states[user_id] = STATE_AWAITING_FEEDBACk
-            sent_message = bot.send_message(chat_id, "Вы можете написать следующий отзыв или вернуться в меню.",
+            sent_message = bot.send_message(chat_id, "You can write the following review or return to the menu.",
                              reply_markup=feedback_module_menu())
             user_menu_messages[user_id] = sent_message.message_id
         else:
             # Если состояние другое, игнорируем или отправляем сообщение
-            bot.send_message(chat_id, "Пожалуйста, выберите опцию из меню.")
+            bot.send_message(chat_id, "Please select an option from the menu.")
     else:
         # Если состояние не установлено, просим выбрать опцию из меню
-        bot.send_message(chat_id, "Пожалуйста, выберите опцию из меню, используя команду /start.")
+        bot.send_message(chat_id, "Please select an option from the menu using the command /start.")
 
 
 # Функция для удаления предыдущего сообщения с меню

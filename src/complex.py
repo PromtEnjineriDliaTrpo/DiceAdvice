@@ -52,11 +52,11 @@ def handle_complex_question(chat_id, hugging_face_token, user_message, mode=None
 
         # Generate a response using Hugging Face API
         ai_response = generate_response(prompt, hugging_face_token)
-        response_message = f"Ваш вопрос: {user_message}\n\nОтвет AI:"
+        response_message = f"Ur question: {user_message}\n\nОтвет AI:"
         if mode:
             response_message += f" ({mode.capitalize()})"
         response_message += f"\n{ai_response}"
 
         return response_message
     except Exception as e:
-        return f"Произошла ошибка при обработке AI: {e}"
+        return f"Something went wrong: {e}"

@@ -13,10 +13,10 @@ def get_stat():
         complex_usage = data[COMPLEX_MODULE_STATS]
         totd_usage = data[TIP_OF_THE_DAY_STATS]
         sum_usage = simple_usage + complex_usage + totd_usage
-        str = f'суммарное количество использований: {sum_usage}\n' \
-                f'Использование простого модуля: {simple_usage}({int(simple_usage/sum_usage*100)}%)\n'\
-                f'Использование сложного модуля: {complex_usage}({int(complex_usage/sum_usage*100)}%)\n'\
-                f'Использование модуля совета дня: {totd_usage}({int(totd_usage/sum_usage*100)}%)\n'
+        str = f'total number of uses: {sum_usage}\n' \
+                f'Using a simple module: {simple_usage}({int(simple_usage/sum_usage*100)}%)\n'\
+                f'Using a complex module: {complex_usage}({int(complex_usage/sum_usage*100)}%)\n'\
+                f'Using the Council of the Day module: {totd_usage}({int(totd_usage/sum_usage*100)}%)\n'
         return str
 
 
