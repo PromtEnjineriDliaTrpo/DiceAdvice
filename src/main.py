@@ -1,17 +1,21 @@
-import telebot
-from telebot import types
 import configparser
-import datetime
-import requests
-from hugging_face_model import generate_response
 import json
+import requests
+import telebot
+
 from tabulate import tabulate
+from telebot import types
 
 #import modules
 from admin import (
     admin_module_menu,
     get_feedback,
     is_admin,
+)
+from complex import (
+    complex_module_menu,
+    handle_complex_question,
+    mode_selection_menu,
 )
 from feedback import (
     handle_user_feedback,
@@ -54,19 +58,13 @@ STATE_SELECTING_adminOPTION = "selecting_admin_option"
 STATE_DEFAULT = "default"
 STATE_AWAITING_FEEDBACk = 'awaiting_feedback'
 
-complex_modes = {
-    "philosopher": "Respond as a wise philosopher.",
-    "politician": "Respond like a professional politician.",
-    "teacher": "Respond like an experienced teacher."
-}
-
 user_complex_preferences = {}
 
 
 # Обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start_command(message):
-    markup = main_menu()
+    markup = main_menu(message.from_user.id)
     sent_message = bot.send_message(message.chat.id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
     # Сохраняем идентификатор отправленного сообщения с меню
     user_menu_messages[message.from_user.id] = sent_message.message_id
@@ -88,57 +86,6 @@ def main_menu(user_id=0):
     markup.add(button_feedback)
     markup.add(button_tip)
     return markup
-
-
-# Function to create the main menu for the complex module
-def complex_module_menu():
-    markup = types.InlineKeyboardMarkup()
-    mode_button = types.InlineKeyboardButton("Выбрать режим", callback_data='select_mode')
-    datetime_button = types.InlineKeyboardButton("Добавить дату и время", callback_data='include_datetime')
-    cancel_mode_button = types.InlineKeyboardButton("Отменить режим", callback_data='cancel_mode')
-    cancel_datetime_button = types.InlineKeyboardButton("Отключить дату и время", callback_data='cancel_datetime')
-    ask_question_button = types.InlineKeyboardButton("Задать вопрос", callback_data='ask_complex_question')
-    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
-    markup.add(mode_button, datetime_button)
-    markup.add(cancel_mode_button, cancel_datetime_button)
-    markup.add(ask_question_button)
-    markup.add(back_button)
-    return markup
-
-
-# Function to handle mode selection
-def mode_selection_menu():
-    markup = types.InlineKeyboardMarkup()
-    for mode_key in complex_modes:
-        markup.add(types.InlineKeyboardButton(f"{mode_key.capitalize()}", callback_data=f'set_mode_{mode_key}'))
-    back_button = types.InlineKeyboardButton("Вернуться в сложный модуль", callback_data='complex_module')
-    markup.add(back_button)
-    return markup
-
-
-# Function to generate the AI's response
-def handle_complex_question(chat_id, user_message, mode=None, include_datetime=False):
-    try:
-        # Prepare the prompt
-        prompt = ""
-        if mode:
-            prompt += f"{complex_modes[mode]} "
-        if include_datetime:
-            now = datetime.datetime.now()
-            day_of_week = now.strftime("%A")  # Get current day of the week
-            current_time = now.strftime("%H:%M")  # Get current time in HH:MM format
-            prompt += f"Current day of week: {day_of_week}, current time: {current_time}. "
-        prompt += f"Question: {user_message}"
-
-        # Generate a response using Hugging Face API
-        ai_response = generate_response(prompt, hugging_face_token)
-        response_message = f"Ваш вопрос: {user_message}\n\nОтвет AI:"
-        if mode:
-            response_message += f" ({mode.capitalize()})"
-        response_message += f"\n{ai_response}"
-        bot.send_message(chat_id, response_message)
-    except Exception as e:
-        bot.send_message(chat_id, f"Произошла ошибка при обработке AI: {e}")
 
 
 # Обработчик нажатий на кнопки
@@ -358,7 +305,8 @@ def handle_message(message):
             preferences = user_complex_preferences.get(user_id, {})
             mode = preferences.get('mode')
             include_datetime = preferences.get('include_datetime', False)
-            handle_complex_question(chat_id, user_message, mode, include_datetime)
+            msg_ = handle_complex_question(chat_id, hugging_face_token, user_message, mode, include_datetime)
+            bot.send_message(chat_id, msg_)
             user_states[user_id] = STATE_SELECTING_COMPLEX_OPTION
             bot.send_message(chat_id, "Вы можете задать следующий вопрос или вернуться в меню.",
                              reply_markup=complex_module_menu())
