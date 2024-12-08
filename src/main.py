@@ -2,12 +2,14 @@ import telebot
 from telebot import types
 import configparser
 import random
-
+from hugging_face_model import generate_response
 from simple import QuestionAnalyzer
 
 
 CONFIG = configparser.ConfigParser()
 CONFIG.read('../configs/config.ini')
+
+hugging_face_token = CONFIG['HUGGING_FACE_API']['hugging_face_token']
 
 token = CONFIG['BOT.TELEGRAM']['token']
 bot = telebot.TeleBot(token)
@@ -17,6 +19,7 @@ user_menu_messages = {}
 
 # Константы состояний
 STATE_AWAITING_SIMPLE_QUESTION = "awaiting_simple_question"
+STATE_AWAITING_COMPLEX_QUESTION = "awaiting_complex_question"
 STATE_IN_MAIN_MENU = "in_main_menu"
 STATE_DEFAULT = "default"
 
@@ -32,6 +35,7 @@ def start_command(message):
     user_menu_messages[message.from_user.id] = sent_message.message_id
     user_states[message.from_user.id] = STATE_DEFAULT
 
+
 # Функция для создания главного меню
 def main_menu():
     markup = types.InlineKeyboardMarkup()
@@ -45,6 +49,7 @@ def main_menu():
     markup.add(button_feedback)
     return markup
 
+
 # Функция для создания меню простого модуля
 def simple_module_menu():
     markup = types.InlineKeyboardMarkup()
@@ -52,12 +57,32 @@ def simple_module_menu():
     markup.add(back_button)
     return markup
 
+
 # Функция для создания меню после ответа
 def simple_module_after_response_menu():
     markup = types.InlineKeyboardMarkup()
     back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
     markup.add(back_button)
     return markup
+
+
+# Function to create a menu for the complex module
+def complex_module_menu():
+    markup = types.InlineKeyboardMarkup()
+    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
+    markup.add(back_button)
+    return markup
+
+
+# Function to handle AI response generation for the complex module
+def handle_complex_question(chat_id, user_message):
+    try:
+        # Generate a response using Hugging Face API
+        ai_response = generate_response(user_message, hugging_face_token)
+        bot.send_message(chat_id, f"Ваш вопрос: {user_message}\nОтвет AI: {ai_response}")
+    except Exception as e:
+        bot.send_message(chat_id, f"Произошла ошибка при обработке AI: {e}")
+
 
 # Обработчик нажатий на кнопки
 @bot.callback_query_handler(func=lambda call: True)
@@ -75,6 +100,14 @@ def callback_query(call):
         bot.edit_message_text(chat_id=chat_id, message_id=message_id,
                               text="Привет, ты выбрал простой модуль, напиши вопрос:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
+        user_menu_messages[user_id] = message_id
+
+    elif call.data == 'complex_module':
+        # New complex module logic
+        user_states[user_id] = STATE_AWAITING_COMPLEX_QUESTION  # New state for the complex module
+        markup = complex_module_menu()
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                              text="Вы выбрали сложный модуль. Напишите ваш вопрос:", reply_markup=markup)
         user_menu_messages[user_id] = message_id
 
     elif call.data == 'back_to_main':
@@ -110,6 +143,7 @@ def callback_query(call):
         user_menu_messages[user_id] = sent_message.message_id
         user_states[user_id] = STATE_DEFAULT
 
+
 # Обработчик текстовых сообщений
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
@@ -143,12 +177,20 @@ def handle_message(message):
             user_menu_messages[user_id] = sent_message.message_id
             # Остаемся в текущем состоянии или сбрасываем, если нужно
             # user_states[user_id] = STATE_DEFAULT
+        elif state == STATE_AWAITING_COMPLEX_QUESTION:
+            # New logic for complex module
+            user_message = message.text
+            delete_previous_menu(user_id, chat_id)
+            handle_complex_question(chat_id, user_message)
+            markup = complex_module_menu()
+            bot.send_message(chat_id, "Задавайте следующий вопрос или вернитесь в меню.", reply_markup=markup)
         else:
             # Если состояние другое, игнорируем или отправляем сообщение
             bot.send_message(chat_id, "Пожалуйста, выберите опцию из меню.")
     else:
         # Если состояние не установлено, просим выбрать опцию из меню
         bot.send_message(chat_id, "Пожалуйста, выберите опцию из меню, используя команду /start.")
+
 
 # Функция для удаления предыдущего сообщения с меню
 def delete_previous_menu(user_id, chat_id):
@@ -160,6 +202,7 @@ def delete_previous_menu(user_id, chat_id):
             del user_menu_messages[user_id]
         except:
             pass  # Игнорируем ошибки, если сообщение нельзя удалить или оно уже удалено
+
 
 # Запуск бота
 bot.polling()
