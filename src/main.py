@@ -4,10 +4,13 @@ import configparser
 import datetime
 import requests
 from hugging_face_model import generate_response
-from simple import handle_simple_q
+from simple import (
+    handle_simple_q,
+    simple_module_menu,
+    simple_module_after_response_menu,
+)
 import json
 from tabulate import tabulate
-
 
 
 CONFIG = configparser.ConfigParser()
@@ -87,14 +90,6 @@ def main_menu():
 
 
 # Функция для создания меню простого модуля
-def simple_module_menu():
-    markup = types.InlineKeyboardMarkup()
-    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
-    markup.add(back_button)
-    return markup
-
-
-# Функция для создания меню простого модуля
 def feedback_module_menu():
     markup = types.InlineKeyboardMarkup()
     back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
@@ -110,14 +105,6 @@ def admin_module_menu():
     markup.add(stat_btn)
     markup.add(reviews_btn)
     markup.add(back_btn)
-    return markup
-
-
-# Функция для создания меню после ответа
-def simple_module_after_response_menu():
-    markup = types.InlineKeyboardMarkup()
-    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
-    markup.add(back_button)
     return markup
 
 

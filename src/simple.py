@@ -2,6 +2,7 @@ import json
 import random
 
 from mistralai import Mistral
+from telebot import types
 
 api_key = '3Hc4mDWfCKf0H6H3MJDwxCcHX8HpZA4d'
 
@@ -36,3 +37,19 @@ def handle_simple_q(question, api_token):
             return f'Вопрос: {question}\nОтвет: Да'
         else:
             return f'Вопрос: {question}\nОтвет: No'
+
+
+# Функция для создания меню простого модуля
+def simple_module_menu():
+    markup = types.InlineKeyboardMarkup()
+    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
+    markup.add(back_button)
+    return markup
+
+
+# Функция для создания меню после ответа
+def simple_module_after_response_menu():
+    markup = types.InlineKeyboardMarkup()
+    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
+    markup.add(back_button)
+    return markup
