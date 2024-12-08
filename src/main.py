@@ -5,15 +5,16 @@ import random
 import datetime
 import requests
 from hugging_face_model import generate_response
-from simple import QuestionAnalyzer
+from simple import is_yes_no_question
 
 
 CONFIG = configparser.ConfigParser()
 CONFIG.read('../configs/config.ini')
 
 hugging_face_token = CONFIG['HUGGING_FACE_API']['hugging_face_token']
-
 token = CONFIG['BOT.TELEGRAM']['token']
+mistral_token = CONFIG['BOT.MISTRAL']['token']
+
 bot = telebot.TeleBot(token)
 
 user_states = {}
@@ -43,8 +44,6 @@ FALLBACK_QUOTES = [
     "“Your time is limited, don’t waste it living someone else’s life.” – Steve Jobs",
     "“Life is what happens when you’re busy making other plans.” – John Lennon"
 ]
-
-anal = QuestionAnalyzer()
 
 
 # Обработчик команды /start
@@ -308,7 +307,7 @@ def handle_message(message):
 
             markup = simple_module_after_response_menu()
 
-            if not anal.is_yes_no_question(msg_text):
+            if not is_yes_no_question(msg_text, mistral_token):
                 bot.send_message(chat_id, "Некорректный вопрос")
             else:
                 prob = random.randint(0, 1)

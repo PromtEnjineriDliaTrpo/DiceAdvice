@@ -1,20 +1,25 @@
-from natasha import (
-    Segmenter,
-    MorphVocab,
-    NewsEmbedding,
-    NewsMorphTagger,
-    NewsSyntaxParser,
-    Doc
-)
+from mistralai import Mistral
+import json
 
-class QuestionAnalyzer:
-    def __init__(self):
-        # Инициализация компонентов
-        self.segmenter = Segmenter()
-        self.morph_vocab = MorphVocab()
-        self.emb = NewsEmbedding()
-        self.morph_tagger = NewsMorphTagger(self.emb)
-        self.syntax_parser = NewsSyntaxParser(self.emb)
+api_key = '3Hc4mDWfCKf0H6H3MJDwxCcHX8HpZA4d'
 
-    def is_yes_no_question(self, text: str) -> bool:
-        return True
+def is_yes_no_question(question, api_key):
+    with Mistral(
+        api_key=api_key,
+    ) as s:
+        res = s.chat.complete(model="mistral-large-latest", messages=[
+            {
+                "role": "system",
+                "content": "You are an assistant that determines if a question can be answered with 'yes' or 'no'. Respond only with 'True' if it's a yes/no question, or 'False' if it's not."
+            },
+            {
+                "role": "user",
+                "content": f"Is this a yes/no question: '{question}'? Respond only with True or False."
+            },
+        ])
+
+        if res is not None:
+            print(res.json())
+            js = json.loads(res.json())
+            result = js['choices'][0]['message']['content'].strip().lower()
+            return result == "true"
