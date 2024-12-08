@@ -3,6 +3,7 @@ from telebot import types
 import configparser
 import random
 import datetime
+import requests
 from hugging_face_model import generate_response
 from simple import QuestionAnalyzer
 
@@ -33,6 +34,16 @@ complex_modes = {
 
 user_complex_preferences = {}
 
+# Fallback Quotes (in case API fails)
+FALLBACK_QUOTES = [
+    "“The only limit to our realization of tomorrow is our doubts of today.” – Franklin D. Roosevelt",
+    "“In the middle of every difficulty lies opportunity.” – Albert Einstein",
+    "“Success is not final, failure is not fatal: It is the courage to continue that counts.” – Winston Churchill",
+    "“Happiness is not something ready-made. It comes from your own actions.” – Dalai Lama",
+    "“Your time is limited, don’t waste it living someone else’s life.” – Steve Jobs",
+    "“Life is what happens when you’re busy making other plans.” – John Lennon"
+]
+
 anal = QuestionAnalyzer()
 
 
@@ -53,10 +64,12 @@ def main_menu():
     button_complex = types.InlineKeyboardButton("2 - Сложный модуль", callback_data='complex_module')
     button_admin = types.InlineKeyboardButton("3 - Модуль для админов", callback_data='admin_module')
     button_feedback = types.InlineKeyboardButton("4 - Модуль для обратной связи", callback_data='feedback_module')
+    button_tip = types.InlineKeyboardButton("5 - Совет дня", callback_data='tip_of_the_day')
     markup.add(button_simple)
     markup.add(button_complex)
     markup.add(button_admin)
     markup.add(button_feedback)
+    markup.add(button_tip)
     return markup
 
 
@@ -127,6 +140,22 @@ def handle_complex_question(chat_id, user_message, mode=None, include_datetime=F
         bot.send_message(chat_id, f"Произошла ошибка при обработке AI: {e}")
 
 
+# Function to fetch a random quote from an API
+def get_random_quote():
+    try:
+        response = requests.get("https://zenquotes.io/api/random", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            quote = f"“{data[0]['q']}” – {data[0]['a']}"
+            return quote
+        else:
+            raise Exception(f"API returned status code {response.status_code}")
+    except Exception as e:
+        print(f"Error fetching quote: {e}")
+        # Fallback to a predefined quote
+        return random.choice(FALLBACK_QUOTES)
+
+
 # Обработчик нажатий на кнопки
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
@@ -134,7 +163,14 @@ def callback_query(call):
     chat_id = call.message.chat.id
     message_id = call.message.message_id
 
-    if call.data == 'simple_module':
+    if call.data == 'tip_of_the_day':
+        # Handle the Tip of the Day option
+        quote = get_random_quote()
+        markup = main_menu()
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                              text=f"Совет дня:\n\n{quote}\n\nВыберите опцию из меню:", reply_markup=markup)
+
+    elif call.data == 'simple_module':
         # Устанавливаем состояние пользователя
         user_states[user_id] = STATE_AWAITING_SIMPLE_QUESTION
         markup = simple_module_menu()
