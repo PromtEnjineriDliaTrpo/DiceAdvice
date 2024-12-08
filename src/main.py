@@ -6,6 +6,7 @@ import datetime
 import requests
 from hugging_face_model import generate_response
 from simple import is_yes_no_question
+import json
 
 
 CONFIG = configparser.ConfigParser()
@@ -14,6 +15,12 @@ CONFIG.read('../configs/config.ini')
 hugging_face_token = CONFIG['HUGGING_FACE_API']['hugging_face_token']
 token = CONFIG['BOT.TELEGRAM']['token']
 mistral_token = CONFIG['BOT.MISTRAL']['token']
+
+
+admin_ids = [
+    406136592,
+    1230349081
+]
 
 bot = telebot.TeleBot(token)
 
@@ -25,7 +32,12 @@ STATE_AWAITING_SIMPLE_QUESTION = "awaiting_simple_question"
 STATE_SELECTING_COMPLEX_OPTION = "selecting_complex_option"
 STATE_AWAITING_COMPLEX_QUESTION = "awaiting_complex_question"
 STATE_IN_MAIN_MENU = "in_main_menu"
+STATE_SELECTING_adminOPTION = "selecting_admin_option"
 STATE_DEFAULT = "default"
+
+SIMPLE_MODULE_STATS = 'simple_module_stats'
+COMPLEX_MODULE_STATS = 'complex_module_stats'
+TIP_OF_THE_DAY_STATS = 'tip_of_the_day_stats'
 
 complex_modes = {
     "philosopher": "Respond as a wise philosopher.",
@@ -77,6 +89,17 @@ def simple_module_menu():
     markup = types.InlineKeyboardMarkup()
     back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
     markup.add(back_button)
+    return markup
+
+
+def admin_module_menu():
+    markup = types.InlineKeyboardMarkup()
+    stat_btn = types.InlineKeyboardButton("Показать статистику", callback_data='show_statistic')
+    reviews_btn = types.InlineKeyboardButton("Показать отзывы", callback_data='show_reviews')
+    back_btn = types.InlineKeyboardButton("Назад", callback_data='back_to_main')
+    markup.add(stat_btn)
+    markup.add(reviews_btn)
+    markup.add(back_btn)
     return markup
 
 
@@ -155,6 +178,34 @@ def get_random_quote():
         return random.choice(FALLBACK_QUOTES)
 
 
+def get_stat():
+    with open('../admin/stat.json', 'r') as file:
+        data = json.load(file)
+        SIMPLE_MODULE_STATS = 'simple_module_stats'
+        COMPLEX_MODULE_STATS = 'complex_module_stats'
+        TIP_OF_THE_DAY_STATS = 'tip_of_the_day_stats'
+        simple_usage = data[SIMPLE_MODULE_STATS]
+        complex_usage = data[COMPLEX_MODULE_STATS]
+        totd_usage = data[TIP_OF_THE_DAY_STATS]
+        sum_usage = simple_usage + complex_usage + totd_usage
+        str = f'суммарное количество использований: {sum_usage}\n' \
+                f'Использование простого модуля: {simple_usage}({int(simple_usage/sum_usage*100)}%)\n'\
+                f'Использование сложного модуля: {complex_usage}({int(complex_usage/sum_usage*100)}%)\n'\
+                f'Использование модуля совета дня: {totd_usage}({int(totd_usage/sum_usage*100)}%)\n'
+        return str
+
+
+def increase_stat(module):
+    with open('../admin/stat.json', 'r+') as file:
+        data = json.load(file)
+        data[module] += 1
+        file.seek(0)
+        json.dump(data, file)
+        file.truncate()
+        file.close()
+
+
+
 # Обработчик нажатий на кнопки
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
@@ -167,6 +218,7 @@ def callback_query(call):
         delete_previous_menu(user_id, chat_id)
         bot.send_message(chat_id, get_random_quote())
         markup = main_menu()
+        increase_stat(TIP_OF_THE_DAY_STATS)
         sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
         # Сохраняем идентификатор отправленного сообщения с меню
         user_menu_messages[user_id] = sent_message.message_id
@@ -275,7 +327,40 @@ def callback_query(call):
                               text="Напишите следующий вопрос:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
+    elif call.data == 'admin_module':
+        if user_id in admin_ids:
+            # Устанавливаем состояние пользователя
+            user_states[user_id] = STATE_AWAITING_SIMPLE_QUESTION
+            markup = admin_module_menu()
 
+            # Редактируем предыдущее сообщение с новым текстом и клавиатурой
+            bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                                text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+            # Обновляем идентификатор последнего сообщения с меню
+            user_menu_messages[user_id] = message_id
+        else:
+            bot.answer_callback_query(call.id)
+            delete_previous_menu(user_id, chat_id)
+            bot.send_message(chat_id, 'еблан ты, а не админ')
+            markup = main_menu()
+            sent_message = bot.send_message(chat_id, "Добро пожаловать! Выберите опцию:", reply_markup=markup)
+            # Сохраняем идентификатор отправленного сообщения с меню
+            user_menu_messages[user_id] = sent_message.message_id
+            user_states[user_id] = STATE_DEFAULT
+    elif call.data == 'show_statistic':
+        bot.answer_callback_query(call.id)
+        delete_previous_menu(user_id, chat_id)
+        bot.send_message(chat_id, get_stat())
+
+        # Устанавливаем состояние пользователя
+        user_states[user_id] = STATE_AWAITING_SIMPLE_QUESTION
+        markup = admin_module_menu()
+
+        # Редактируем предыдущее сообщение с новым текстом и клавиатурой
+        bot.send_message(chat_id=chat_id,
+                            text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+        # Обновляем идентификатор последнего сообщения с меню
+        user_menu_messages[user_id] = message_id
     else:
         # Обработка других модулей (пока не реализованы)
         bot.answer_callback_query(call.id)
@@ -321,7 +406,9 @@ def handle_message(message):
             user_menu_messages[user_id] = sent_message.message_id
             # Остаемся в текущем состоянии или сбрасываем, если нужно
             # user_states[user_id] = STATE_DEFAULT
+            increase_stat(SIMPLE_MODULE_STATS)
         elif state == STATE_AWAITING_COMPLEX_QUESTION:
+            delete_previous_menu(user_id, chat_id)
             user_message = message.text
             preferences = user_complex_preferences.get(user_id, {})
             mode = preferences.get('mode')
@@ -330,6 +417,7 @@ def handle_message(message):
             user_states[user_id] = STATE_SELECTING_COMPLEX_OPTION
             bot.send_message(chat_id, "Вы можете задать следующий вопрос или вернуться в меню.",
                              reply_markup=complex_module_menu())
+            increase_stat(COMPLEX_MODULE_STATS)
         else:
             # Если состояние другое, игнорируем или отправляем сообщение
             bot.send_message(chat_id, "Пожалуйста, выберите опцию из меню.")
