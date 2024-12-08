@@ -7,6 +7,8 @@ import requests
 from hugging_face_model import generate_response
 from simple import is_yes_no_question
 import json
+from tabulate import tabulate
+
 
 
 CONFIG = configparser.ConfigParser()
@@ -34,6 +36,7 @@ STATE_AWAITING_COMPLEX_QUESTION = "awaiting_complex_question"
 STATE_IN_MAIN_MENU = "in_main_menu"
 STATE_SELECTING_adminOPTION = "selecting_admin_option"
 STATE_DEFAULT = "default"
+STATE_AWAITING_FEEDBACk = 'awaiting_feedback'
 
 SIMPLE_MODULE_STATS = 'simple_module_stats'
 COMPLEX_MODULE_STATS = 'complex_module_stats'
@@ -86,6 +89,14 @@ def main_menu():
 
 # Функция для создания меню простого модуля
 def simple_module_menu():
+    markup = types.InlineKeyboardMarkup()
+    back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
+    markup.add(back_button)
+    return markup
+
+
+# Функция для создания меню простого модуля
+def feedback_module_menu():
     markup = types.InlineKeyboardMarkup()
     back_button = types.InlineKeyboardButton("Вернуться назад", callback_data='back_to_main')
     markup.add(back_button)
@@ -203,6 +214,38 @@ def increase_stat(module):
         json.dump(data, file)
         file.truncate()
         file.close()
+
+
+def handle_user_feedback(user_id, user_message):
+    with open('../admin/feedback.json', 'r+') as file:
+        data = json.load(file)
+
+        user_id = str(user_id)
+
+        if user_id not in data:
+            data[user_id] = [user_message]
+        else:
+            data[user_id].append(user_message)
+        file.seek(0)
+        json.dump(data, file)
+        file.truncate()
+        file.close()
+
+
+def get_feedback():
+    with open('../admin/feedback.json', 'r') as f:
+        data = json.load(f)
+
+    table_data = []
+    for user_id, reviews in list(data.items())[:5]:  # берем первых 5 пользователей
+        for review in reviews[:5]:  # берем первые 5 отзывов
+            table_data.append({
+                'user_id': user_id,
+                'review': review
+            })
+
+    # Выводим таблицу
+    return tabulate(table_data, headers="keys", tablefmt="grid")
 
 
 
@@ -353,12 +396,38 @@ def callback_query(call):
         bot.send_message(chat_id, get_stat())
 
         # Устанавливаем состояние пользователя
-        user_states[user_id] = STATE_AWAITING_SIMPLE_QUESTION
+        user_states[user_id] = STATE_DEFAULT
         markup = admin_module_menu()
 
         # Редактируем предыдущее сообщение с новым текстом и клавиатурой
         bot.send_message(chat_id=chat_id,
                             text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+        # Обновляем идентификатор последнего сообщения с меню
+        user_menu_messages[user_id] = message_id
+    elif call.data == 'show_reviews':
+        bot.answer_callback_query(call.id)
+        delete_previous_menu(user_id, chat_id)
+        with open('../admin/feedback.json', 'rb') as f:
+            bot.send_document(chat_id, f)
+        bot.send_message(chat_id, get_feedback())
+
+        # Устанавливаем состояние пользователя
+        user_states[user_id] = STATE_DEFAULT
+        markup = admin_module_menu()
+
+        # Редактируем предыдущее сообщение с новым текстом и клавиатурой
+        bot.send_message(chat_id=chat_id,
+                            text="Привет, мой дорогой и многоуважаемый админ, выбери опцию:", reply_markup=markup)
+        # Обновляем идентификатор последнего сообщения с меню
+        user_menu_messages[user_id] = message_id
+    elif call.data == 'feedback_module':
+        # Устанавливаем состояние пользователя
+        user_states[user_id] = STATE_AWAITING_FEEDBACk
+        markup = feedback_module_menu()
+
+        # Редактируем предыдущее сообщение с новым текстом и клавиатурой
+        bot.edit_message_text(chat_id=chat_id, message_id=message_id,
+                              text="Привет, мой недорогой и немногоуважаемый пользователь, напиши отзыв:", reply_markup=markup)
         # Обновляем идентификатор последнего сообщения с меню
         user_menu_messages[user_id] = message_id
     else:
@@ -418,6 +487,16 @@ def handle_message(message):
             bot.send_message(chat_id, "Вы можете задать следующий вопрос или вернуться в меню.",
                              reply_markup=complex_module_menu())
             increase_stat(COMPLEX_MODULE_STATS)
+        elif state == STATE_AWAITING_FEEDBACk:
+            delete_previous_menu(user_id, chat_id)
+            user_message = message.text
+
+            handle_user_feedback(user_id, user_message)
+
+            user_states[user_id] = STATE_AWAITING_FEEDBACk
+            sent_message = bot.send_message(chat_id, "Вы можете написать следующий отзыв или вернуться в меню.",
+                             reply_markup=feedback_module_menu())
+            user_menu_messages[user_id] = sent_message.message_id
         else:
             # Если состояние другое, игнорируем или отправляем сообщение
             bot.send_message(chat_id, "Пожалуйста, выберите опцию из меню.")
