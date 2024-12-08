@@ -5,13 +5,14 @@ import requests
 import sys
 import os
 import configparser
+import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-from src.simple import __is_yes_no_question
-from src.main import get_random_quote
+from src.simple import _is_yes_no_question
+from src.totd import get_random_quote
 
 CONFIG = configparser.ConfigParser()
-CONFIG.read('../configs/config.ini')
+CONFIG.read(f'{os.path.dirname(os.path.abspath(__file__))}/../configs/config.ini')
 
 mistral_token = CONFIG['BOT.MISTRAL']['token']
 
@@ -34,7 +35,8 @@ class TestIsYesNoQuestion(unittest.TestCase):
         mock_mistral.return_value.__enter__.return_value.chat.complete.return_value = mock_response
 
         # Call the function with a yes/no question
-        result = __is_yes_no_question("Is it raining?", api_key=mistral_token)
+        time.sleep(5)
+        result = _is_yes_no_question("Is it raining?", api_key=mistral_token)
         self.assertTrue(result)
 
     @patch('simple.Mistral')
@@ -54,7 +56,7 @@ class TestIsYesNoQuestion(unittest.TestCase):
         mock_mistral.return_value.__enter__.return_value.chat.complete.return_value = mock_response
 
         # Call the function with a non-yes/no question
-        result = __is_yes_no_question("What is the weather like?", api_key=mistral_token)
+        result = _is_yes_no_question("What is the weather like?", api_key=mistral_token)
         self.assertFalse(result)
 
 

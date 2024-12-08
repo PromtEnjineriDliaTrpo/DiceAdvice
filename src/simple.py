@@ -6,7 +6,7 @@ from telebot import types
 
 api_key = '3Hc4mDWfCKf0H6H3MJDwxCcHX8HpZA4d'
 
-def __is_yes_no_question(question, api_key):
+def _is_yes_no_question(question, api_key):
     with Mistral(
         api_key=api_key,
     ) as s:
@@ -29,7 +29,7 @@ def __is_yes_no_question(question, api_key):
 
 
 def handle_simple_q(question, api_token):
-    if not __is_yes_no_question(question, api_token):
+    if not _is_yes_no_question(question, api_token):
         return "Некорректный вопрос"
     else:
         prob = random.randint(0, 1)

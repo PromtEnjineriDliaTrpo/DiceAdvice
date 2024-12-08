@@ -1,5 +1,6 @@
 import configparser
 import json
+import os
 import requests
 import telebot
 
@@ -38,7 +39,7 @@ from totd import (
 )
 
 CONFIG = configparser.ConfigParser()
-CONFIG.read('../configs/config.ini')
+CONFIG.read(f'{os.path.dirname(os.path.abspath(__file__))}/../configs/config.ini')
 
 hugging_face_token = CONFIG['HUGGING_FACE_API']['hugging_face_token']
 token = CONFIG['BOT.TELEGRAM']['token']
