@@ -20,6 +20,9 @@ from simple import (
 from stats import (
     get_stat,
     increase_stat,
+    COMPLEX_MODULE_STATS,
+    SIMPLE_MODULE_STATS,
+    TIP_OF_THE_DAY_STATS,
 )
 from totd import (
     get_random_quote,
@@ -51,10 +54,6 @@ STATE_IN_MAIN_MENU = "in_main_menu"
 STATE_SELECTING_adminOPTION = "selecting_admin_option"
 STATE_DEFAULT = "default"
 STATE_AWAITING_FEEDBACk = 'awaiting_feedback'
-
-SIMPLE_MODULE_STATS = 'simple_module_stats'
-COMPLEX_MODULE_STATS = 'complex_module_stats'
-TIP_OF_THE_DAY_STATS = 'tip_of_the_day_stats'
 
 complex_modes = {
     "philosopher": "Respond as a wise philosopher.",

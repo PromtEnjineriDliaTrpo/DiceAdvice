@@ -1,12 +1,14 @@
 import json
 
 
+SIMPLE_MODULE_STATS = 'simple_module_stats'
+COMPLEX_MODULE_STATS = 'complex_module_stats'
+TIP_OF_THE_DAY_STATS = 'tip_of_the_day_stats'
+
+
 def get_stat():
     with open('../admin/stat.json', 'r') as file:
         data = json.load(file)
-        SIMPLE_MODULE_STATS = 'simple_module_stats'
-        COMPLEX_MODULE_STATS = 'complex_module_stats'
-        TIP_OF_THE_DAY_STATS = 'tip_of_the_day_stats'
         simple_usage = data[SIMPLE_MODULE_STATS]
         complex_usage = data[COMPLEX_MODULE_STATS]
         totd_usage = data[TIP_OF_THE_DAY_STATS]
